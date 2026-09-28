@@ -1,0 +1,333 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum GoalStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+enum RecurrenceType {
+  NONE
+  DAILY
+  WEEKLY
+  SELECTED_DAYS
+  CUSTOM
+}
+
+enum XPReason {
+  TASK_COMPLETED
+  TASK_UNCOMPLETED
+  DAILY_BONUS
+  STREAK_BONUS
+  ACHIEVEMENT_BONUS
+}
+
+enum NotificationType {
+  PENDING_TASK
+  TASK_REMINDER
+  GOAL_MILESTONE
+  ACHIEVEMENT
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  READ
+  FAILED
+}
+
+model User {
+  id                     String                  @id @default(uuid())
+  email                  String                  @unique
+  passwordHash           String
+  name                   String
+  role                   Role                    @default(USER)
+  bio                    String?
+  avatarUrl              String?
+  timezone               String                  @default("UTC")
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+
+  character              Character?
+  notificationPreference NotificationPreference?
+  notifications          Notification[]
+  goals                  Goal[]
+  tasks                  Task[]
+  taskInstances          TaskInstance[]
+  xpTransactions         XPTransaction[]
+  dailyBonusRecords      DailyBonusRecord[]
+  aiPlans                AiPlan[]
+  userAchievements       UserAchievement[]
+
+  @@index([email])
+}
+
+model Character {
+  id             String         @id @default(uuid())
+  userId         String         @unique
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name           String         @default("Novice Hero")
+  title          String         @default("Novice Quester")
+  gender         String         @default("MALE") // MALE, FEMALE
+  level          Int            @default(1)
+  currentXP      Int            @default(0)
+  totalXP        Int            @default(0)
+  currentStreak  Int            @default(0)
+  longestStreak  Int            @default(0)
+  lastActiveDate String?        // YYYY-MM-DD
+  stage          String         @default("Beginner") // Beginner, Developing, Disciplined, Advanced, Master
+
+  stats          CharacterStat?
+
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}
+
+model CharacterStat {
+  id          String    @id @default(uuid())
+  characterId String    @unique
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  strength    Int       @default(10)
+  knowledge   Int       @default(10)
+  discipline  Int       @default(10)
+  focus       Int       @default(10)
+  consistency Int       @default(10)
+
+  updatedAt   DateTime  @updatedAt
+}
+
+model XPTransaction {
+  id             String        @id @default(uuid())
+  userId         String
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  taskInstanceId String?
+  taskInstance   TaskInstance? @relation(fields: [taskInstanceId], references: [id], onDelete: SetNull)
+
+  amount         Int           // Positive for gains, negative for reversals
+  reason         XPReason
+  description    String?
+
+  createdAt      DateTime      @default(now())
+
+  @@index([userId, createdAt])
+  @@index([taskInstanceId, reason])
+}
+
+model DailyBonusRecord {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bonusDate String   // YYYY-MM-DD
+  xpAmount  Int      @default(25)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, bonusDate])
+  @@index([userId, bonusDate])
+}
+
+model Goal {
+  id          String         @id @default(uuid())
+  userId      String
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String?
+  category    String         @default("Personal") // Fitness, Learning, Career, Health, Habit, etc.
+  priority    Priority       @default(MEDIUM)
+  status      GoalStatus     @default(ACTIVE)
+  progress    Float          @default(0) // 0.0 to 100.0%
+  startDate   DateTime       @default(now())
+  endDate     DateTime?
+
+  tasks         Task[]
+  taskInstances TaskInstance[]
+
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([userId, status])
+}
+
+model Task {
+  id             String         @id @default(uuid())
+  userId         String
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  goalId         String?
+  goal           Goal?          @relation(fields: [goalId], references: [id], onDelete: SetNull)
+
+  title          String
+  description    String?
+  category       String         @default("General")
+  priority       Priority       @default(MEDIUM)
+  
+  isRecurring    Boolean        @default(false)
+  recurrenceType RecurrenceType @default(NONE)
+  recurrenceDays Int[]          // 0=Sun, 1=Mon, ..., 6=Sat
+  
+  startDate      DateTime       @default(now())
+  endDate        DateTime?
+  dueTime        String?        // e.g. "07:30"
+  isActive       Boolean        @default(true)
+
+  instances      TaskInstance[]
+
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([userId, isActive])
+  @@index([goalId])
+}
+
+model TaskInstance {
+  id                 String          @id @default(uuid())
+  taskId             String
+  task               Task            @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId             String
+  user               User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  goalId             String?
+  goal               Goal?           @relation(fields: [goalId], references: [id], onDelete: SetNull)
+
+  title              String
+  description        String?
+  category           String          @default("General")
+  priority           Priority        @default(MEDIUM)
+
+  taskDate           String          // YYYY-MM-DD format
+  dueTime            String?         // e.g. "07:30"
+
+  completed          Boolean         @default(false)
+  completedAt        DateTime?
+  xpAwarded          Boolean         @default(false)
+  xpEarned           Int             @default(0)
+
+  notificationSent   Boolean         @default(false)
+  notificationSentAt DateTime?
+
+  xpTransactions     XPTransaction[]
+  notifications      Notification[]
+
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  @@unique([taskId, taskDate])
+  @@index([userId, taskDate, completed])
+  @@index([goalId])
+}
+
+model NotificationPreference {
+  id                       String   @id @default(uuid())
+  userId                   String   @unique
+  user                     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  taskNotificationsEnabled Boolean  @default(true)
+  notificationTime         String   @default("20:00") // HH:mm format in user local timezone
+  timezone                 String   @default("UTC")
+
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+}
+
+model Notification {
+  id                       String             @id @default(uuid())
+  userId                   String
+  user                     User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  taskInstanceId           String?
+  taskInstance             TaskInstance?      @relation(fields: [taskInstanceId], references: [id], onDelete: SetNull)
+
+  type                     NotificationType   @default(PENDING_TASK)
+  title                    String
+  message                  String
+  targetDate               String             // YYYY-MM-DD format (user local calendar date)
+
+  status                   NotificationStatus @default(SENT)
+  scheduledFor             DateTime?
+  sentAt                   DateTime           @default(now())
+  readAt                   DateTime?
+  browserDeliveryAttempted Boolean            @default(false)
+
+  createdAt                DateTime           @default(now())
+  updatedAt                DateTime           @updatedAt
+
+  @@unique([userId, targetDate, type]) // Idempotency: single daily summary pending task notification per user
+  @@index([userId, status, createdAt])
+  @@index([userId, targetDate])
+}
+
+model AiPlan {
+  id                  String   @id @default(uuid())
+  userId              String
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  prompt              String
+  goalTitle           String
+  category            String   @default("Personal")
+  targetDate          String?  // YYYY-MM-DD
+  skillLevel          String?  // Beginner, Intermediate, Advanced
+  availableTimePerDay Int?     // minutes
+  daysPerWeek         Int?     // days
+  summary             String
+  estimatedDuration   String
+
+  planData            Json     // Structured { milestones: [...], tasks: [...] }
+  status              String   @default("DRAFT") // DRAFT, ACCEPTED, REJECTED
+  acceptedGoalId      String?
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([userId, status, createdAt])
+}
+
+model Achievement {
+  id               String            @id @default(uuid())
+  key              String            @unique
+  title            String
+  description      String
+  icon             String            @default("trophy")
+  category         String            @default("GENERAL") // GENERAL, STREAK, LEVEL, GOALS, XP, TASKS
+  requirementType  String            // TASKS_COMPLETED, STREAK_DAYS, LEVEL_REACHED, GOALS_COMPLETED, TOTAL_XP
+  requirementValue Int
+  xpReward         Int               @default(50)
+
+  userAchievements UserAchievement[]
+
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@index([category])
+}
+
+model UserAchievement {
+  id            String      @id @default(uuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievementId String
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  unlockedAt    DateTime    @default(now())
+
+  @@unique([userId, achievementId])
+  @@index([userId])
+}

@@ -1,0 +1,50 @@
+{
+  "name": "lifequest-server",
+  "version": "1.0.0",
+  "description": "LifeQuest Backend API - Gamified Goal & Self-Improvement System",
+  "main": "src/app.ts",
+  "scripts": {
+    "dev": "node \"node_modules/tsx/dist/cli.mjs\" watch src/app.ts",
+    "build": "node \"node_modules/typescript/bin/tsc\" -p tsconfig.build.json",
+    "start": "node dist/app.js",
+    "db:start": "node \"node_modules/tsx/dist/cli.mjs\" src/db/local-pg.ts",
+    "prisma:generate": "node \"node_modules/prisma/build/index.js\" generate",
+    "prisma:push": "node \"node_modules/prisma/build/index.js\" db push",
+    "prisma:studio": "node \"node_modules/prisma/build/index.js\" studio",
+    "prisma:seed": "node \"node_modules/tsx/dist/cli.mjs\" prisma/seed.ts",
+    "test": "node \"node_modules/tsx/dist/cli.mjs\" src/test-auth-flow.ts",
+    "test:phase2": "node \"node_modules/tsx/dist/cli.mjs\" src/test-phase2-flow.ts",
+    "test:phase3": "node \"node_modules/tsx/dist/cli.mjs\" src/test-phase3-flow.ts",
+    "test:phase4": "node \"node_modules/tsx/dist/cli.mjs\" src/test-phase4-flow.ts",
+    "test:phase5": "node \"node_modules/tsx/dist/cli.mjs\" src/test-phase5-flow.ts",
+    "test:phase6": "node \"node_modules/tsx/dist/cli.mjs\" src/test-phase6-flow.ts",
+    "test:major-update": "node \"node_modules/tsx/dist/cli.mjs\" src/test-major-update-flow.ts",
+    "test:ai-conversational": "node \"node_modules/tsx/dist/cli.mjs\" src/test-ai-conversational-flow.ts",
+    "test:all": "npm test && npm run test:phase2 && npm run test:phase3 && npm run test:phase4 && npm run test:phase5 && npm run test:phase6 && npm run test:major-update && npm run test:ai-conversational",
+    "typecheck": "node \"node_modules/typescript/bin/tsc\" --noEmit"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@prisma/client": "^5.22.0",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "embedded-postgres": "^18.4.0-beta.17",
+    "express": "^4.21.1",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.13.1",
+    "pg-gateway": "^0.3.0-beta.4",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/node": "^22.9.0",
+    "@types/pg": "^8.11.10",
+    "prisma": "^5.22.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}
