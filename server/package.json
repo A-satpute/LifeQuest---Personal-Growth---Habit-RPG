@@ -5,7 +5,7 @@
   "main": "src/app.ts",
   "scripts": {
     "dev": "node \"node_modules/tsx/dist/cli.mjs\" watch src/app.ts",
-    "build": "node \"node_modules/typescript/bin/tsc\" -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json",
     "start": "node dist/app.js",
     "db:start": "node \"node_modules/tsx/dist/cli.mjs\" src/db/local-pg.ts",
     "prisma:generate": "node \"node_modules/prisma/build/index.js\" generate",
@@ -21,7 +21,7 @@
     "test:major-update": "node \"node_modules/tsx/dist/cli.mjs\" src/test-major-update-flow.ts",
     "test:ai-conversational": "node \"node_modules/tsx/dist/cli.mjs\" src/test-ai-conversational-flow.ts",
     "test:all": "npm test && npm run test:phase2 && npm run test:phase3 && npm run test:phase4 && npm run test:phase5 && npm run test:phase6 && npm run test:major-update && npm run test:ai-conversational",
-    "typecheck": "node \"node_modules/typescript/bin/tsc\" --noEmit"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.8",
