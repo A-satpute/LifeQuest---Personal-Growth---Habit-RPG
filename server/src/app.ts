@@ -19,11 +19,32 @@ const app = express();
 // Middlewares
 app.use(
   cors({
-    origin: [env.CLIENT_URL, 'http://localhost:5173', 'http://127.0.0.1:5173'],
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (
+        origin === env.CLIENT_URL ||
+        origin.endsWith('.vercel.app') ||
+        origin.includes('localhost') ||
+        origin.includes('127.0.0.1')
+      ) {
+        return callback(null, true);
+      }
+      callback(null, true);
+    },
     credentials: true,
   })
 );
 app.use(express.json());
+
+// Root greeting endpoint
+app.get('/', (_req: Request, res: Response) => {
+  res.status(200).json({
+    name: 'LifeQuest Backend API',
+    status: 'online',
+    version: '1.0.0',
+    health: '/api/health',
+  });
+});
 
 // Request logger in dev
 if (env.NODE_ENV === 'development') {
