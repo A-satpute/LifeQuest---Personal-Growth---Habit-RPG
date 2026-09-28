@@ -55,7 +55,7 @@ if (env.NODE_ENV === 'development') {
 }
 
 // Health check endpoint
-app.get('/api/health', async (req: Request, res: Response) => {
+app.get(['/api/health', '/health'], async (_req: Request, res: Response) => {
   try {
     // Check database connection
     await prisma.$queryRaw`SELECT 1`;
@@ -74,17 +74,24 @@ app.get('/api/health', async (req: Request, res: Response) => {
   }
 });
 
-// Mount Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/goals', goalRoutes);
-app.use('/api/tasks', taskRoutes);
-app.use('/api/gamification', gamificationRoutes);
-app.use('/api/character', gamificationRoutes);
-app.use('/api/notifications', notificationRoutes);
-app.use('/api/ai', aiRoutes);
-app.use('/api/analytics', analyticsRoutes);
-app.use('/api/achievements', achievementRoutes);
+// Mount Routes (support both /api/* and /* for seamless client integration)
+const routePairs: Array<[string, express.Router]> = [
+  ['/auth', authRoutes],
+  ['/users', userRoutes],
+  ['/goals', goalRoutes],
+  ['/tasks', taskRoutes],
+  ['/gamification', gamificationRoutes],
+  ['/character', gamificationRoutes],
+  ['/notifications', notificationRoutes],
+  ['/ai', aiRoutes],
+  ['/analytics', analyticsRoutes],
+  ['/achievements', achievementRoutes],
+];
+
+for (const [prefix, router] of routePairs) {
+  app.use(`/api${prefix}`, router);
+  app.use(prefix, router);
+}
 
 // 404 Handler
 app.use((req: Request, res: Response, next) => {
